@@ -15,9 +15,9 @@ defmodule Swoosh.Adapters.SMTP.Helpers do
     {message_config, config} = Keyword.split(config, [:transfer_encoding, :keep_bcc])
     {type, subtype, headers, parts} = prepare_message(email, message_config)
 
-    {type, subtype}|>IO.inspect(label: "{type, subtype}", width: 100, charlists: :as_lists, pretty: true, syntax_colors: [number: :red, atom: :blue, binary: :yellow, boolean: :red, list: :green, map: :light_green, regex: :red, string: :light_blue,  tuple: IO.ANSI.color(50)])
-    headers|>IO.inspect(label: "headers", width: 100, charlists: :as_lists, pretty: true, syntax_colors: [number: :red, atom: :blue, binary: :yellow, boolean: :red, list: :green, map: :light_green, regex: :red, string: :light_blue,  tuple: IO.ANSI.color(50)])
-    parts|>IO.inspect(label: "parts", width: 100, charlists: :as_lists, pretty: true, syntax_colors: [number: :red, atom: :blue, binary: :yellow, boolean: :red, list: :green, map: :light_green, regex: :red, string: :light_blue,  tuple: IO.ANSI.color(50)])
+    {type, subtype}|>IO.inspect(label: "{type, subtype}")
+    headers|>IO.inspect(label: "headers")
+    parts|>IO.inspect(label: "parts")
 
     {encoding_config, _config} = Keyword.split(config, [:dkim])
     mime_encode(type, subtype, headers, parts, encoding_config)
