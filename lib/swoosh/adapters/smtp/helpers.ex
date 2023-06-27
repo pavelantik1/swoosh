@@ -14,6 +14,11 @@ defmodule Swoosh.Adapters.SMTP.Helpers do
   def body(email, config) do
     {message_config, config} = Keyword.split(config, [:transfer_encoding, :keep_bcc])
     {type, subtype, headers, parts} = prepare_message(email, message_config)
+
+    {type, subtype}|>IO.inspect(label: "{type, subtype}", width: 100, charlists: :as_lists, pretty: true, syntax_colors: [number: :red, atom: :blue, binary: :yellow, boolean: :red, list: :green, map: :light_green, regex: :red, string: :light_blue,  tuple: IO.ANSI.color(50)])
+    headers|>IO.inspect(label: "headers", width: 100, charlists: :as_lists, pretty: true, syntax_colors: [number: :red, atom: :blue, binary: :yellow, boolean: :red, list: :green, map: :light_green, regex: :red, string: :light_blue,  tuple: IO.ANSI.color(50)])
+    parts|>IO.inspect(label: "parts", width: 100, charlists: :as_lists, pretty: true, syntax_colors: [number: :red, atom: :blue, binary: :yellow, boolean: :red, list: :green, map: :light_green, regex: :red, string: :light_blue,  tuple: IO.ANSI.color(50)])
+
     {encoding_config, _config} = Keyword.split(config, [:dkim])
     mime_encode(type, subtype, headers, parts, encoding_config)
   end
@@ -95,24 +100,35 @@ defmodule Swoosh.Adapters.SMTP.Helpers do
          %{
            attachments: [],
            html_body: html_body,
-           text_body: text_body
+           text_body: text_body,
+           amp_body: amp_body
          },
          config
        ) do
-    case {text_body, html_body} do
-      {text_body, nil} ->
+    case {text_body, html_body, amp_body} do
+      {text_body, nil, nil} ->
         {"text", "plain", add_content_type_header(headers, "text/plain; charset=\"utf-8\""),
          text_body}
 
-      {nil, html_body} ->
+      {nil, html_body, nil} ->
         {"text", "html", add_content_type_header(headers, "text/html; charset=\"utf-8\""),
          html_body}
 
-      {text_body, html_body} ->
+      {text_body, html_body, nil} ->
         parts = [
           prepare_part(:plain, text_body, config),
           prepare_part(:html, html_body, config)
         ]
+
+        {"multipart", "alternative", headers, parts}
+
+      {text_body, html_body, amp_body} ->
+        parts = [
+          prepare_part(:"x-amp-html", amp_body, config),
+          prepare_part(:plain, text_body, config),
+          prepare_part(:html, html_body, config)
+        ]
+        |> Enum.filter(&(!is_nil(&1)))
 
         {"multipart", "alternative", headers, parts}
     end
@@ -123,24 +139,47 @@ defmodule Swoosh.Adapters.SMTP.Helpers do
          %{
            attachments: attachments,
            html_body: html_body,
-           text_body: text_body
+           text_body: text_body,
+           amp_body: amp_body
          },
          config
        ) do
     {inline_attachments, attachments} = Enum.split_with(attachments, &(&1.type == :inline))
 
+    text_part = prepare_part(:plain, text_body, config)
+    html_part = prepare_part(:html, html_body, config)
+    amp_part  = prepare_part(:"x-amp-html", amp_body, config)
+
     content_part =
-      case {prepare_part(:plain, text_body, config), prepare_part(:html, html_body, config)} do
-        {text_part, nil} ->
+      case {text_part, html_part, amp_part} do
+        {text_part, nil, nil} ->
           text_part
 
-        {nil, html_part} ->
+        {nil, html_part, nil} ->
           html_with_line_attachments(html_part, inline_attachments)
 
-        {text_part, html_part} ->
+        {text_part, html_part, nil} ->
           html_part = html_with_line_attachments(html_part, inline_attachments)
 
           {"multipart", "alternative", [], %{}, [text_part, html_part]}
+
+        {text_part, nil, amp_part} ->
+          amp_part = html_with_line_attachments(amp_part, inline_attachments)
+
+          {"multipart", "alternative", [], %{}, [amp_part, text_part]}
+
+        {nil, html_part, amp_part} ->
+          html_part = html_with_line_attachments(html_part, inline_attachments)
+          #! Переваірити. Але, здається - не може бути інлайн
+          amp_part = html_with_line_attachments(amp_part, inline_attachments)
+
+          {"multipart", "alternative", [], %{}, [amp_part, html_part]}
+
+        {text_part, html_part, amp_part} ->
+          html_part = html_with_line_attachments(html_part, inline_attachments)
+          amp_part = html_with_line_attachments(amp_part, inline_attachments)
+
+          {"multipart", "alternative", [], %{}, [amp_part, text_part, html_part]}
       end
 
     attachment_parts = Enum.map(attachments, &prepare_attachment(&1))

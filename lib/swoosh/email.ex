@@ -63,6 +63,7 @@ defmodule Swoosh.Email do
             bcc: [],
             text_body: nil,
             html_body: nil,
+            amp_body: nil,
             attachments: [],
             reply_to: nil,
             headers: %{},
@@ -76,6 +77,7 @@ defmodule Swoosh.Email do
   @type subject :: String.t()
   @type text_body :: String.t()
   @type html_body :: String.t()
+  @type amp_body :: String.t()
 
   @type t :: %__MODULE__{
           subject: String.t(),
@@ -85,6 +87,7 @@ defmodule Swoosh.Email do
           bcc: [mailbox] | [],
           text_body: text_body | nil,
           html_body: html_body | nil,
+          amp_body: amp_body | nil,
           reply_to: mailbox | nil,
           headers: map,
           private: map,
@@ -173,6 +176,7 @@ defmodule Swoosh.Email do
               :reply_to,
               :text_body,
               :html_body,
+              :amp_body,
               :attachment
             ] do
     apply(__MODULE__, key, [email, value])
@@ -203,7 +207,7 @@ defmodule Swoosh.Email do
       iex> new() |> from("steve.rogers@example.com")
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [], cc: [], from: {"", "steve.rogers@example.com"},
        headers: %{}, html_body: nil, private: %{}, provider_options: %{},
-       reply_to: nil, subject: "", text_body: nil, to: []}
+       reply_to: nil, subject: "", text_body: nil, to: [], amp_body: nil}
   """
   @spec from(t, Recipient.t()) :: t
   def from(%__MODULE__{} = email, from) do
@@ -223,7 +227,7 @@ defmodule Swoosh.Email do
       iex> new() |> reply_to("steve.rogers@example.com")
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [], cc: [], from: nil,
        headers: %{}, html_body: nil, private: %{}, provider_options: %{},
-       reply_to: {"", "steve.rogers@example.com"}, subject: "", text_body: nil, to: []}
+       reply_to: {"", "steve.rogers@example.com"}, subject: "", text_body: nil, to: [], amp_body: nil}
   """
   @spec reply_to(t, Recipient.t()) :: t
   def reply_to(%__MODULE__{} = email, reply_to) do
@@ -241,7 +245,7 @@ defmodule Swoosh.Email do
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [],
        cc: [], from: nil, headers: %{}, html_body: nil,
        private: %{}, provider_options: %{}, reply_to: nil, subject: "Hello, Avengers!",
-       text_body: nil, to: []}
+       text_body: nil, to: [], amp_body: nil}
   """
   @spec subject(t, subject) :: t
   def subject(email, subject), do: %{email | subject: subject}
@@ -257,7 +261,7 @@ defmodule Swoosh.Email do
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [],
        cc: [], from: nil, headers: %{}, html_body: nil,
        private: %{}, provider_options: %{}, reply_to: nil, subject: "",
-       text_body: "Hello", to: []}
+       text_body: "Hello", to: [], amp_body: nil}
   """
   @spec text_body(t, text_body | nil) :: t
   def text_body(email, text_body), do: %{email | text_body: text_body}
@@ -273,10 +277,26 @@ defmodule Swoosh.Email do
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [],
        cc: [], from: nil, headers: %{}, html_body: "<h1>Hello</h1>",
        private: %{}, provider_options: %{}, reply_to: nil, subject: "",
-       text_body: nil, to: []}
+       text_body: nil, to: [], amp_body: nil}
   """
   @spec html_body(t, html_body | nil) :: t
   def html_body(email, html_body), do: %{email | html_body: html_body}
+
+  @doc """
+  Sets the `amp_body` field.
+
+  The AMP body must be a string that containing the AMP content.
+
+  ## Examples
+
+      iex> new() |> amp_body("<amp-img src='http://img.com' layout=responsive></amp-img>")
+      %Swoosh.Email{assigns: %{}, attachments: [], bcc: [],
+       cc: [], from: nil, headers: %{}, html_body: nil,
+       private: %{}, provider_options: %{}, reply_to: nil, subject: "",
+       text_body: nil, to: [], amp_body: "<amp-img src='http://img.com' layout=responsive></amp-img>"}
+  """
+  @spec amp_body(t, amp_body | nil) :: t
+  def amp_body(email, amp_body), do: %{email | amp_body: amp_body}
 
   @doc """
   Adds new recipients in the `bcc` field.
@@ -285,7 +305,7 @@ defmodule Swoosh.Email do
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [{"", "steve.rogers@example.com"}],
        cc: [], from: nil, headers: %{}, html_body: nil,
        private: %{}, provider_options: %{}, reply_to: nil, subject: "",
-       text_body: nil, to: []}
+       text_body: nil, to: [], amp_body: nil}
   """
   @spec bcc(t, Recipient.t() | [Recipient.t()]) :: t
   def bcc(%__MODULE__{bcc: bcc} = email, recipients) do
@@ -317,7 +337,7 @@ defmodule Swoosh.Email do
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [],
        cc: [{"", "steve.rogers@example.com"}], from: nil, headers: %{}, html_body: nil,
        private: %{}, provider_options: %{}, reply_to: nil, subject: "",
-       text_body: nil, to: []}
+       text_body: nil, to: [], amp_body: nil}
   """
   @spec cc(t, Recipient.t() | [Recipient.t()]) :: t
   def cc(%__MODULE__{cc: cc} = email, recipients) do
@@ -349,7 +369,7 @@ defmodule Swoosh.Email do
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [],
        cc: [], from: nil, headers: %{}, html_body: nil,
        private: %{}, provider_options: %{}, reply_to: nil, subject: "",
-       text_body: nil, to: [{"", "steve.rogers@example.com"}]}
+       text_body: nil, to: [{"", "steve.rogers@example.com"}], amp_body: nil}
   """
   @spec to(t, Recipient.t() | [Recipient.t()]) :: t
   def to(%__MODULE__{to: to} = email, recipients) do
@@ -382,7 +402,8 @@ defmodule Swoosh.Email do
       iex> new() |> header("X-Magic-Number", "7")
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [], cc: [], from: nil,
        headers: %{"X-Magic-Number" => "7"}, html_body: nil, private: %{},
-       provider_options: %{}, reply_to: nil, subject: "", text_body: nil, to: []}
+       provider_options: %{}, reply_to: nil, subject: "", text_body: nil, to: [],
+       amp_body: nil}
   """
   @spec header(t, String.t(), String.t()) :: t
   def header(%__MODULE__{} = email, name, value) when is_binary(name) and is_binary(value) do
@@ -411,7 +432,8 @@ defmodule Swoosh.Email do
       iex> new() |> put_private(:phoenix_template, "welcome.html")
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [], cc: [], from: nil,
        headers: %{}, html_body: nil, private: %{phoenix_template: "welcome.html"},
-       provider_options: %{}, reply_to: nil, subject: "", text_body: nil, to: []}
+       provider_options: %{}, reply_to: nil, subject: "", text_body: nil, to: [],
+       amp_body: nil}
   """
   @spec put_private(t, atom, any) :: t
   def put_private(%__MODULE__{private: private} = email, key, value) when is_atom(key) do
@@ -429,7 +451,7 @@ defmodule Swoosh.Email do
       iex> new() |> put_provider_option(:async, true)
       %Swoosh.Email{assigns: %{}, attachments: [], bcc: [], cc: [], from: nil,
        headers: %{}, html_body: nil, private: %{}, provider_options: %{async: true},
-       reply_to: nil, subject: "", text_body: nil, to: []}
+       reply_to: nil, subject: "", text_body: nil, to: [], amp_body: nil}
   """
   @spec put_provider_option(t, atom, any) :: t
   def put_provider_option(%__MODULE__{provider_options: provider_options} = email, key, value)
