@@ -164,20 +164,15 @@ defmodule Swoosh.Adapters.SMTP.Helpers do
           {"multipart", "alternative", [], %{}, [text_part, html_part]}
 
         {text_part, nil, amp_part} ->
-          amp_part = html_with_line_attachments(amp_part, inline_attachments)
-
           {"multipart", "alternative", [], %{}, [amp_part, text_part]}
 
         {nil, html_part, amp_part} ->
           html_part = html_with_line_attachments(html_part, inline_attachments)
-          #! Переваірити. Але, здається - не може бути інлайн
-          amp_part = html_with_line_attachments(amp_part, inline_attachments)
 
           {"multipart", "alternative", [], %{}, [amp_part, html_part]}
 
         {text_part, html_part, amp_part} ->
           html_part = html_with_line_attachments(html_part, inline_attachments)
-          amp_part = html_with_line_attachments(amp_part, inline_attachments)
 
           {"multipart", "alternative", [], %{}, [amp_part, text_part, html_part]}
       end
