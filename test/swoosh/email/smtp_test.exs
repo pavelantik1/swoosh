@@ -13,12 +13,13 @@ defmodule Swoosh.Email.SMTPTest do
       |> subject("Hello, Avengers!")
       |> html_body("<h1>Hello</h1>")
       |> text_body("Hello")
+      |> amp_body("Hello, AMP4EMAIL world.")
 
     {:ok, valid_email: valid_email}
   end
 
   test "simple email", %{valid_email: email} do
-    email = email |> html_body(nil)
+    email = email |> html_body(nil) |> amp_body(nil)
 
     assert Helpers.prepare_message(email, []) ==
              {"text", "plain",
@@ -32,7 +33,7 @@ defmodule Swoosh.Email.SMTPTest do
   end
 
   test "simple email without to", %{valid_email: email} do
-    email = email |> html_body(nil) |> put_to(nil)
+    email = email |> html_body(nil) |> put_to(nil) |> amp_body(nil)
 
     assert Helpers.prepare_message(email, []) ==
              {"text", "plain",
@@ -48,6 +49,7 @@ defmodule Swoosh.Email.SMTPTest do
     email =
       email
       |> html_body(nil)
+      |> amp_body(nil)
       |> to({"Janet Pym", "wasp@avengers.com"})
       |> cc({"Bruce Banner", "hulk@smash.com"})
       |> cc("thor@odinson.com")
@@ -73,7 +75,7 @@ defmodule Swoosh.Email.SMTPTest do
   end
 
   test "simple email with multiple recipients", %{valid_email: email} do
-    email = email |> html_body(nil) |> to({"Bruce Banner", "bruce@banner.com"})
+    email = email |> html_body(nil) |> amp_body(nil) |> to({"Bruce Banner", "bruce@banner.com"})
 
     assert Helpers.prepare_message(email, []) ==
              {"text", "plain",
@@ -90,6 +92,7 @@ defmodule Swoosh.Email.SMTPTest do
     email =
       email
       |> html_body(nil)
+      |> amp_body(nil)
       |> to({"Bruce Banner", "bruce@banner.com"})
       |> cc("thor@odinson.com")
 
@@ -106,7 +109,7 @@ defmodule Swoosh.Email.SMTPTest do
   end
 
   test "simple html email", %{valid_email: email} do
-    email = email |> text_body(nil)
+    email = email |> text_body(nil) |> amp_body(nil)
 
     assert Helpers.prepare_message(email, []) ==
              {"text", "html",
@@ -119,6 +122,84 @@ defmodule Swoosh.Email.SMTPTest do
               ], "<h1>Hello</h1>"}
   end
 
+  test "simple amp email", %{valid_email: email} do
+    email = email |> text_body(nil) |> html_body(nil)
+
+    assert_raise  RuntimeError,
+          "AMP mail must contain an alternative option - text or html",
+          fn -> Helpers.prepare_message(email, []) end
+  end
+
+  test "AMP/text email", %{valid_email: email} do
+    email = email |> text_body(nil)
+
+    assert Helpers.prepare_message(email, []) ==
+             {"multipart", "alternative",
+              [
+                {"From", "tony@stark.com"},
+                {"To", "steve@rogers.com"},
+                {"Subject", "Hello, Avengers!"},
+                {"MIME-Version", "1.0"}
+              ],
+              [
+                {"text", "x-amp-html",
+                [
+                  {"Content-Type", "text/x-amp-html; charset=\"utf-8\""},
+                  {"Content-Transfer-Encoding", "quoted-printable"}
+                ],
+                %{
+                  content_type_params: [{"charset", "utf-8"}],
+                  disposition: "inline",
+                  disposition_params: []
+                }, "Hello, AMP4EMAIL world."},
+                {"text", "html",
+                [
+                  {"Content-Type", "text/html; charset=\"utf-8\""},
+                  {"Content-Transfer-Encoding", "quoted-printable"}
+                ],
+                %{
+                  content_type_params: [{"charset", "utf-8"}],
+                  disposition: "inline",
+                  disposition_params: []
+                }, "<h1>Hello</h1>"}
+              ]}
+  end
+
+  test "AMP/html email", %{valid_email: email} do
+    email = email |> html_body(nil)
+
+    assert Helpers.prepare_message(email, []) ==
+             {"multipart", "alternative",
+              [
+                {"From", "tony@stark.com"},
+                {"To", "steve@rogers.com"},
+                {"Subject", "Hello, Avengers!"},
+                {"MIME-Version", "1.0"}
+              ],
+              [
+                {"text", "x-amp-html",
+                [
+                  {"Content-Type", "text/x-amp-html; charset=\"utf-8\""},
+                  {"Content-Transfer-Encoding", "quoted-printable"}
+                ],
+                %{
+                  content_type_params: [{"charset", "utf-8"}],
+                  disposition: "inline",
+                  disposition_params: []
+                }, "Hello, AMP4EMAIL world."},
+                {"text", "plain",
+                [
+                  {"Content-Type", "text/plain; charset=\"utf-8\""},
+                  {"Content-Transfer-Encoding", "quoted-printable"}
+                ],
+                %{
+                  content_type_params: [{"charset", "utf-8"}],
+                  disposition: "inline",
+                  disposition_params: []
+                }, "Hello"}
+              ]}
+  end
+
   test "multipart/alternative email", %{valid_email: email} do
     assert Helpers.prepare_message(email, []) ==
              {"multipart", "alternative",
@@ -129,6 +210,16 @@ defmodule Swoosh.Email.SMTPTest do
                 {"MIME-Version", "1.0"}
               ],
               [
+                {"text", "x-amp-html",
+                [
+                  {"Content-Type", "text/x-amp-html; charset=\"utf-8\""},
+                  {"Content-Transfer-Encoding", "quoted-printable"}
+                ],
+                %{
+                  content_type_params: [{"charset", "utf-8"}],
+                  disposition: "inline",
+                  disposition_params: []
+                }, "Hello, AMP4EMAIL world."},
                 {"text", "plain",
                  [
                    {"Content-Type", "text/plain; charset=\"utf-8\""},
@@ -174,6 +265,16 @@ defmodule Swoosh.Email.SMTPTest do
               [
                 {"multipart", "alternative", [], %{},
                  [
+                   {"text", "x-amp-html",
+                   [
+                      {"Content-Type", "text/x-amp-html; charset=\"utf-8\""},
+                      {"Content-Transfer-Encoding", "quoted-printable"}
+                   ],
+                   %{
+                      content_type_params: [{"charset", "utf-8"}],
+                      disposition: "inline",
+                      disposition_params: []
+                   }, "Hello, AMP4EMAIL world."},
                    {"text", "plain",
                     [
                       {"Content-Type", "text/plain; charset=\"utf-8\""},
@@ -221,8 +322,18 @@ defmodule Swoosh.Email.SMTPTest do
                 {"MIME-Version", "1.0"}
               ],
               [
-                {"multipart", "alternative", [], %{},
-                 [
+                  {"multipart", "alternative", [], %{},
+                  [
+                    {"text", "x-amp-html",
+                    [
+                      {"Content-Type", "text/x-amp-html; charset=\"utf-8\""},
+                      {"Content-Transfer-Encoding", "quoted-printable"}
+                    ],
+                    %{
+                      content_type_params: [{"charset", "utf-8"}],
+                      disposition: "inline",
+                      disposition_params: []
+                    }, "Hello, AMP4EMAIL world."},
                    {"text", "plain",
                     [
                       {"Content-Type", "text/plain; charset=\"utf-8\""},

@@ -14,11 +14,6 @@ defmodule Swoosh.Adapters.SMTP.Helpers do
   def body(email, config) do
     {message_config, config} = Keyword.split(config, [:transfer_encoding, :keep_bcc])
     {type, subtype, headers, parts} = prepare_message(email, message_config)
-
-    {type, subtype}|>IO.inspect(label: "{type, subtype}")
-    headers|>IO.inspect(label: "headers")
-    parts|>IO.inspect(label: "parts")
-
     {encoding_config, _config} = Keyword.split(config, [:dkim])
     mime_encode(type, subtype, headers, parts, encoding_config)
   end
@@ -122,13 +117,30 @@ defmodule Swoosh.Adapters.SMTP.Helpers do
 
         {"multipart", "alternative", headers, parts}
 
+      {nil, nil, _amp_body} -> raise "AMP mail must contain an alternative option - text or html"
+
+      {text_body, nil, amp_body} ->
+        parts = [
+          prepare_part(:"x-amp-html", amp_body, config),
+          prepare_part(:plain, text_body, config)
+        ]
+
+        {"multipart", "alternative", headers, parts}
+
+      {nil, html_body, amp_body} ->
+        parts = [
+          prepare_part(:"x-amp-html", amp_body, config),
+          prepare_part(:html, html_body, config)
+        ]
+
+        {"multipart", "alternative", headers, parts}
+
       {text_body, html_body, amp_body} ->
         parts = [
           prepare_part(:"x-amp-html", amp_body, config),
           prepare_part(:plain, text_body, config),
           prepare_part(:html, html_body, config)
         ]
-        |> Enum.filter(&(!is_nil(&1)))
 
         {"multipart", "alternative", headers, parts}
     end
@@ -162,6 +174,8 @@ defmodule Swoosh.Adapters.SMTP.Helpers do
           html_part = html_with_line_attachments(html_part, inline_attachments)
 
           {"multipart", "alternative", [], %{}, [text_part, html_part]}
+
+        {nil, nil, _amp_body} -> raise "AMP mail must contain an alternative option - text or html"
 
         {text_part, nil, amp_part} ->
           {"multipart", "alternative", [], %{}, [amp_part, text_part]}
