@@ -59,6 +59,14 @@ defmodule Swoosh.EmailTest do
     assert email == %Email{text_body: "Welcome, I am Jarvis"}
   end
 
+  test "amp_body/2" do
+    email = new() |> amp_body("<amp-img src=\"www.example.com\" width=\"700\" height=\"450\"></amp-img>")
+    assert email == %Email{amp_body: "<amp-img src=\"www.example.com\" width=\"700\" height=\"450\"></amp-img>"}
+
+    email = email |> amp_body("Hello, AMP4EMAIL world.")
+    assert email == %Email{amp_body: "Hello, AMP4EMAIL world."}
+  end
+
   test "reply_to/2" do
     email = new() |> reply_to("welcome.avengers@example.com")
     assert email == %Email{reply_to: {"", "welcome.avengers@example.com"}}
