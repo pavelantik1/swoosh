@@ -2,7 +2,7 @@ defmodule Swoosh.Mixfile do
   use Mix.Project
 
   @source_url "https://github.com/swoosh/swoosh"
-  @version "1.11.2"
+  @version "1.11.3"
 
   def project do
     [
@@ -78,6 +78,11 @@ defmodule Swoosh.Mixfile do
     ]
   end
 
+  @deprecated_adapters [
+    Swoosh.Adapters.OhMySmtp,
+    Swoosh.Adapters.Sendinblue
+  ]
+
   defp docs do
     [
       source_ref: "v#{@version}",
@@ -105,7 +110,7 @@ defmodule Swoosh.Mixfile do
           Swoosh.TestAssertions,
           Swoosh.X.TestAssertions
         ],
-        Deprecated: Swoosh.Adapters.OhMySmtp
+        Deprecated: @deprecated_adapters
       ]
     ]
   end
@@ -117,7 +122,7 @@ defmodule Swoosh.Mixfile do
       [_, module] = Regex.run(~r/\Adefmodule (.+) do/, content)
       module |> String.split(".") |> Module.concat()
     end)
-    |> Kernel.--([Swoosh.Adapters.OhMySmtp])
+    |> Kernel.--(@deprecated_adapters)
   end
 
   defp aliases do
